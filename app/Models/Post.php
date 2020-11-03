@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Post extends Model
+
+class Post extends Model implements HasMedia
 {
-    use HasFactory,HasSlug;
+    use HasFactory,HasSlug, InteractsWithMedia;
 
     protected $fillable = [
         'title',
@@ -30,10 +33,19 @@ class Post extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function Tag()
+    {
+        return $this->belongsToMany(Tag::class);
+    }
+
+    //slug option
     public function getSlugoption()
     {
         return SlugOptions::create()
             ->generateSlugsFrom('title')
-            ->saveSlugsTo('slug');
+            ->saveSlugsTo('slug')
+            ->doNotGenerateSlugsOnUpdate();
     }
+
+    //
 }

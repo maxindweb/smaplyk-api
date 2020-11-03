@@ -19,8 +19,10 @@ class CreatePostsTable extends Migration
             $table->string('slug');
             $table->text('description');
             $table->longText('body');            
+            $table->boolean('is_published')->default(false);
             $table->unsignedInteger('user_id');
             $table->unsignedInteger('tag_id');
+            $table->unsignedInteger('thumbnail_id')->nullable();
             $table->timestamps();
         });
     }

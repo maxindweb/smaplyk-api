@@ -18,4 +18,11 @@ class Tag extends Model
     {
         return $this->belongsToMany(Post::Class);
     }
+
+    public function getSlugoption()
+    {
+        return SlugOptions::create()
+            ->generateSlugsFrom('title')
+            ->saveSlugsTo('slug');
+    }
 }

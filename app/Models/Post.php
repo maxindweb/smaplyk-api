@@ -8,44 +8,47 @@ use Spatie\Sluggable\HasSlug;
 use Spatie\Sluggable\SlugOptions;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use \Conner\Tagging\Taggable;
 
 
-class Post extends Model implements HasMedia
+class Post extends Model
 {
-    use HasFactory,HasSlug, InteractsWithMedia;
+    use HasFactory,HasSlug,InteractsWithMedia,Taggable;
 
     protected $fillable = [
         'title',
         'slug',
         'description',
         'body',
+        'post_category_id',
         'user_id',
-        'tag_id'
+        'tags',
+        'is_published'
     ];
 
-    public function Category()
+    public function categories()
     {
-        return $this->belongTo(Category::class);
+        return $this->belongsTo(Category::class);
     }
 
-    public function User()
+    public function users()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function Tag()
+    public function comments()
     {
-        return $this->belongsToMany(Tag::class);
+        return $this->belongsTo(PostComment::class);
     }
 
     //slug option
-    public function getSlugoption()
-    {
-        return SlugOptions::create()
-            ->generateSlugsFrom('title')
-            ->saveSlugsTo('slug')
-            ->doNotGenerateSlugsOnUpdate();
-    }
+    public function getSlugOptions() : SlugOptions
+{
+    return SlugOptions::create()
+        ->generateSlugsFrom('title')
+        ->saveSlugsTo('slug');
+        // ->allowDuplicateSlugs();
+}
 
     //
 }

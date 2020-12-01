@@ -13,7 +13,7 @@ use \Conner\Tagging\Taggable;
 
 class Post extends Model
 {
-    use HasFactory,HasSlug,InteractsWithMedia,Taggable;
+    use HasFactory,HasSlug,Taggable;
 
     protected $fillable = [
         'title',

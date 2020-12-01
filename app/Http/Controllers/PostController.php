@@ -8,19 +8,13 @@ use App\Models\Tag;
 use App\Models\User;
 use Validator;
 use Carbon;
+use Auth;
 
 class PostController extends Controller
 {
     public function index()
     {
         return response()->json(Post::all(), 200);
-    }
-
-    public function userScope()
-    {
-        $user = User::auth()->id();
-
-        return response()->json(Post::where('user_id', $user)->first(), 200);
     }
 
     public function scopePublished()
@@ -33,10 +27,6 @@ class PostController extends Controller
         return response()->json(Post::with('tagged')->where('slug', $slug)->get(), 200);
     }
 
-    public function uploadImage(Request $request, Post $post)
-    {
-        $post->addMediaFromRequest('image')->toMediaCollection('image');
-    }
 
     /**
      * Sotred Post to disk
@@ -44,56 +34,62 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'title'              => 'required',
-            'slug'               => 'string',
-            'body'               => 'required|max:255',
-            'description'        => 'required|max:255',
-            'post_category_id'   => 'required',
-            'user_id'            => 'required',
-            'tags'               => 'string',
-            'thumbnail_id'       => 'string',
-        ]);
-
-        if($validator->fails())
-        {
+        $user = Auth::user();
+        if($user->hasPermissionTo('create post')){
+            $validator = Validator::make($request->all(), [
+                'title'              => 'required',
+                'slug'               => 'string',
+                'body'               => 'required|max:255',
+                'description'        => 'required|max:255',
+                'post_category_id'   => 'required',
+                'tags'               => 'string',
+                'thumbnail_id'       => 'string',
+            ]);
+    
+            if($validator->fails())
+            {
+                return response()->json([
+                    'errors'=> $validator->errors()
+                ]);
+            }
+    
+            $post = Post::create([
+                'title'             => $request->title,
+                'slug'              => $request->slug,
+                'description'       => $request->description,
+                'body'              => $request->body,
+                'post_category_id'  => $request->post_category_id,
+                'user_id'           => Auth::user()->id,
+                'thumbnail_id'      => $request->thumbnail_id,
+                'is_published'      => true,
+            ]);
+    
+            foreach($post->tags as $tag) {
+                echo $tag->name . ' with url slug of ' . $tag->slug;
+            }
+            $post->tag(explode(',', $request->tags));
+    
             return response()->json([
-                'errors'=> $validator->errors()
+                'article'   => $post,
+                'status'    => $post ? 'Success Created Post' : 'Error Creating Post'
             ]);
         }
-
-        $post = Post::create([
-            'title'             => $request->title,
-            'slug'              => $request->slug,
-            'description'       => $request->description,
-            'body'              => $request->body,
-            'post_category_id'  => $request->post_category_id,
-            'user_id'           => $request->user_id,
-            'thumbnail_id'      => $request->thumbnail_id,
-            'is_published'      => true,
-        ]);
-
-        foreach($post->tags as $tag) {
-            echo $tag->name . ' with url slug of ' . $tag->slug;
+        else{
+            return response()->json([
+                'status' => 'abort'
+            ]);
         }
-        $post->tag(explode(',', $request->tags));
-
-        return response()->json([
-            'article'   => $post,
-            'status'    => $post ? 'Success Created Post' : 'Error Creating Post'
-        ]);
+        
     }
 
     public function publieshedArticle(Request $request)
     {
-        if($role->haPermissionTo())
         $validator = Validator::make($request->all(), [
             'title'              => 'required',
             'slug'               => 'string',
             'body'               => 'required|max:255',
             'description'        => 'required|max:255',
             'post_category_id'   => 'required',
-            'user_id'            => 'required',
             'tag_id'             => 'string',
             'thumbnail_id'       => 'string'
         ]);
@@ -103,11 +99,7 @@ class PostController extends Controller
             return response()->json([
                 'errors'=> $validator->errors()
             ]);
-        }
-        $data = [
-            
-        ];
-        
+        }        
 
         $post = Post::updateOrCreate([
             'title' => $request->get('title'),
@@ -115,7 +107,7 @@ class PostController extends Controller
             'description'  => $request->get('description'),
             'body'  => $request->get('body'),
             'post_category_id'  => $request->get('post_category_id') ,
-            'user_id'           => $request->get('user_id'),
+            'user_id'           => Auth::user()->id,
             'is_published'      => true
         ]);
         $post->reTag($request->tags);
@@ -155,9 +147,9 @@ class PostController extends Controller
         ]);
     }
 
-    public function destroy()
+    public function destroy($id)
     {
-        $status = Article::delete();
+        $status = Post::destroy($id);
 
         return response()->json([
             'status'    => $status,
